@@ -1352,6 +1352,9 @@ impl<T: Trait> Module<T> {
 	fn try_vote(who: &T::AccountId, ref_index: ReferendumIndex, vote: AccountVote<BalanceOf<T>>) -> DispatchResult {
 		let mut status = Self::referendum_status(ref_index)?;
 		ensure!(vote.balance() <= T::Currency::free_balance(who), Error::<T>::InsufficientFunds);
+
+		let mut weighted_vote = status.weight.calculate(vote, status.weight);
+
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
 			if let Voting::Direct { ref mut votes, delegations, .. } = voting {
 				match votes.binary_search_by_key(&ref_index, |i| i.0) {
@@ -1700,9 +1703,7 @@ impl<T: Trait> Module<T> {
 
 		// tally up votes for any expiring referenda.
 		for (index, info) in Self::maturing_referenda_at(now).into_iter() {
-			let approved = Self::bake_referendum(now, index, info)?;
-			ReferendumInfoOf::<T>::insert(index, ReferendumInfo::Finished { end: now, approved });
-		}
+			let approved = Self::bake_refevote(bak
 		Ok(())
 	}
 }

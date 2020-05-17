@@ -22,6 +22,7 @@ use codec::{Encode, Decode};
 // use sp_runtime::traits::{Zero, IntegerSquareRoot};
 // use sp_std::ops::{Add, Mul, Div, Rem};
 // use crate::Tally;
+use crate::AccountVote;
 
 
 /// A means of determining what is weight of the vote.
@@ -34,4 +35,39 @@ pub enum VoteWeight {
 	Quadratic,
 
 	// add more as needed
+}
+
+pub trait Calculate< > {
+	/// Given a `tally` of votes and a total size of `electorate`, this returns `true` if the
+	/// overall outcome is in favor of approval according to `self`'s threshold method.
+	fn calculate(&self, vote: AccoutnVote<Balance>) -> AccountVote<Balance>;
+}
+
+// @TODO check if this is formula for quadratic voting
+fn calculate_weight(vote: AccountVote<Balance>) -> AccountVote<Balance> {
+	match vote {
+		AccountVote::Standard => {
+			vote.balance = vote.balance * vote.balance;
+
+			vote
+		},
+		AccountVote::Split => {
+			vote.aye = vote.aye * vote.aye;
+			vote.nay = vote.nay * vote.nay;
+
+			vote
+		}
+	}
+}
+
+
+impl<
+
+> Calculate<Balance> for VoteWeight {
+	fn calculate(&self, vote: AccountVote<Balance>) -> AccountVote<Balance> {
+		match *self {
+			VoteWeight::Standard => vote,
+			VoteWeight::Quadratic => calculate_weight(vote)
+		}
+	}
 }

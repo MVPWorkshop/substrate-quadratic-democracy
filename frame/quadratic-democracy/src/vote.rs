@@ -21,6 +21,8 @@ use codec::{Encode, EncodeLike, Decode, Output, Input};
 use sp_runtime::{RuntimeDebug, traits::{Saturating, Zero}};
 use crate::{Conviction, ReferendumIndex, Delegations};
 
+pub type Weight = u128;
+
 /// A number of lock periods, plus a vote, one way or the other.
 #[derive(Copy, Clone, Eq, PartialEq, Default, RuntimeDebug)]
 pub struct Vote {
