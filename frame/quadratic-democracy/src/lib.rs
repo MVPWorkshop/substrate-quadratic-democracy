@@ -185,7 +185,7 @@ mod vote;
 mod conviction;
 mod types;
 pub use vote_threshold::{Approved, VoteThreshold};
-pub use vote_weight::{VoteWeight};
+pub use vote_weight::{Calculate, VoteWeight};
 pub use vote::{Vote, AccountVote, Voting};
 pub use conviction::Conviction;
 pub use types::{ReferendumInfo, ReferendumStatus, ProxyState, Tally, UnvoteScope, Delegations};
@@ -1353,8 +1353,7 @@ impl<T: Trait> Module<T> {
 		let mut status = Self::referendum_status(ref_index)?;
 		ensure!(vote.balance() <= T::Currency::free_balance(who), Error::<T>::InsufficientFunds);
 
-		let mut weighted_vote = status.weight.calculate(vote, status.weight);
-
+		let weighted_vote = status.weight.calculate(vote);
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
 			if let Voting::Direct { ref mut votes, delegations, .. } = voting {
 				match votes.binary_search_by_key(&ref_index, |i| i.0) {
