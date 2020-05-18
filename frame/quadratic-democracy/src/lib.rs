@@ -1703,7 +1703,9 @@ impl<T: Trait> Module<T> {
 
 		// tally up votes for any expiring referenda.
 		for (index, info) in Self::maturing_referenda_at(now).into_iter() {
-			let approved = Self::bake_refevote(bak
+			let approved = Self::bake_referendum(now, index, info)?;
+			ReferendumInfoOf::<T>::insert(index, ReferendumInfo::Finished { end: now, approved });
+		}
 		Ok(())
 	}
 }
