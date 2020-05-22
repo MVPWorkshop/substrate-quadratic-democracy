@@ -1354,21 +1354,23 @@ impl<T: Trait> Module<T> {
 		ensure!(vote.balance() <= T::Currency::free_balance(who), Error::<T>::InsufficientFunds);
 
 		let weighted_vote = status.weight.calculate(vote);
+		println!("{:?}", weighted_vote);
+
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
 			if let Voting::Direct { ref mut votes, delegations, .. } = voting {
 				match votes.binary_search_by_key(&ref_index, |i| i.0) {
 					Ok(i) => {
 						// Shouldn't be possible to fail, but we handle it gracefully.
-						status.tally.remove(votes[i].1).ok_or(Error::<T>::Underflow)?;
+						status.tally.remove(votes[i].1).ok_or(Error::<T>::Underflow)?; // @TODO move to AccountVoteWeight
 						if let Some(approve) = votes[i].1.as_standard() {
 							status.tally.reduce(approve, *delegations);
 						}
-						votes[i].1 = vote;
+						votes[i].1 = vote; // @TODO move to AccountVoteWeight
 					}
-					Err(i) => votes.insert(i, (ref_index, vote)),
+					Err(i) => votes.insert(i, (ref_index, vote)), // @TODO move to AccountVoteWeight
 				}
 				// Shouldn't be possible to fail, but we handle it gracefully.
-				status.tally.add(vote).ok_or(Error::<T>::Overflow)?;
+				status.tally.add(vote).ok_or(Error::<T>::Overflow)?; // @TODO move to AccountVoteWeight
 				if let Some(approve) = vote.as_standard() {
 					status.tally.increase(approve, *delegations);
 				}
@@ -1404,14 +1406,14 @@ impl<T: Trait> Module<T> {
 					Some(ReferendumInfo::Ongoing(mut status)) => {
 						ensure!(matches!(scope, UnvoteScope::Any), Error::<T>::NoPermission);
 						// Shouldn't be possible to fail, but we handle it gracefully.
-						status.tally.remove(votes[i].1).ok_or(Error::<T>::Underflow)?;
+						status.tally.remove(votes[i].1).ok_or(Error::<T>::Underflow)?; // @TODO move to AccountVoteWeight
 						if let Some(approve) = votes[i].1.as_standard() {
 							status.tally.reduce(approve, *delegations);
 						}
 						ReferendumInfoOf::<T>::insert(ref_index, ReferendumInfo::Ongoing(status));
 					}
 					Some(ReferendumInfo::Finished{end, approved}) =>
-						if let Some((lock_periods, balance)) = votes[i].1.locked_if(approved) {
+						if let Some((lock_periods, balance)) = votes[i].1.locked_if(approved) { // @TODO move to AccountVoteWeight
 							let unlock_at = end + T::EnactmentPeriod::get() * lock_periods.into();
 							let now = system::Module::<T>::block_number();
 							if now < unlock_at {
@@ -1436,7 +1438,7 @@ impl<T: Trait> Module<T> {
 			Voting::Direct { votes, delegations, .. } => {
 				*delegations = delegations.saturating_add(amount);
 				for &(ref_index, account_vote) in votes.iter() {
-					if let AccountVote::Standard { vote, .. } = account_vote {
+					if let AccountVote::Standard { vote, .. } = account_vote { // @TODO move to AccountVoteWeight
 						ReferendumInfoOf::<T>::mutate(ref_index, |maybe_info|
 							if let Some(ReferendumInfo::Ongoing(ref mut status)) = maybe_info {
 								status.tally.increase(vote.aye, amount);
@@ -1456,7 +1458,7 @@ impl<T: Trait> Module<T> {
 			Voting::Direct { votes, delegations, .. } => {
 				*delegations = delegations.saturating_sub(amount);
 				for &(ref_index, account_vote) in votes.iter() {
-					if let AccountVote::Standard { vote, .. } = account_vote {
+					if let AccountVote::Standard { vote, .. } = account_vote { // @TODO move to AccountVoteWeight
 						ReferendumInfoOf::<T>::mutate(ref_index, |maybe_info|
 							if let Some(ReferendumInfo::Ongoing(ref mut status)) = maybe_info {
 								status.tally.reduce(vote.aye, amount);

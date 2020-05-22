@@ -59,6 +59,17 @@ pub enum AccountVote<Balance> {
 	Split { aye: Balance, nay: Balance },
 }
 
+/// A vote and the weight of the vote for a referendum of a particular account.
+#[derive(Encode, Decode, Copy, Clone, Eq, PartialEq, RuntimeDebug)]
+pub enum AccountVoteWeight<Balance> {
+	/// A standard vote, one-way (approve or reject) with a given amount of conviction and actual
+	/// vote weight committed to the referendum
+	Standard { vote: Vote, balance: Balance, weighted_balance: Balance},
+	/// A split vote with balances given for both ways, and with no conviction, useful for
+	/// parachains when voting.
+	Split { aye: Balance, nay: Balance, aye_weight: Balance, nay_weight: Balance},
+}
+
 impl<Balance: Saturating> AccountVote<Balance> {
 	/// Returns `Some` of the lock periods that the account is locked for, assuming that the
 	/// referendum passed iff `approved` is `true`.
@@ -88,6 +99,17 @@ impl<Balance: Saturating> AccountVote<Balance> {
 		}
 	}
 }
+
+// impl<Balance: Saturating> AccountVoteWeight<Balance> {
+// 	/// Returns `Some` with whether the vote is an aye vote if it is standard, otherwise `None` if
+// 	/// it is split.
+// 	pub fn as_standard(self) -> Option<bool> {
+// 		match self {
+// 			AccountVoteWeight::Standard { vote, .. } => Some(vote.aye),
+// 			_ => None,
+// 		}
+// 	}
+// }
 
 /// A "prior" lock, i.e. a lock for some now-forgotten reason.
 #[derive(Encode, Decode, Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, RuntimeDebug)]
@@ -163,7 +185,7 @@ impl<
 	pub fn locked_balance(&self) -> Balance {
 		match self {
 			Voting::Direct { votes, prior, .. } => votes.iter()
-				.map(|i| i.1.balance())
+				.map(|i| i.1.balance()) // @TODO move to AccountVoteWeight
 				.fold(prior.locked(), |a, i| a.max(i)),
 			Voting::Delegating { balance, .. } => *balance,
 		}

@@ -21,6 +21,7 @@ use serde::{Serialize, Deserialize};
 use codec::{Encode, Decode};
 use sp_runtime::traits::{Zero, CheckedMul};
 use crate::{AccountVote};
+use crate::vote::AccountVoteWeight;
 
 
 /// A means of determining what is weight of the vote.
@@ -36,27 +37,49 @@ pub enum VoteWeight {
 }
 
 pub trait Calculate<Balance> {
-	fn calculate(&self, vote: AccountVote<Balance>) -> AccountVote<Balance>;
+	fn calculate(&self, vote: AccountVote<Balance>) -> AccountVoteWeight<Balance>;
 }
 
 impl<
 	Balance: From<u8> + Zero + Copy + CheckedMul
 > Calculate<Balance> for VoteWeight {
-	fn calculate(&self, vote: AccountVote<Balance>) -> AccountVote<Balance> {
+	fn calculate(&self, vote: AccountVote<Balance>) -> AccountVoteWeight<Balance> {
 		match *self {
-			VoteWeight::Standard => vote,
+			// VoteWeight::Standard => vote,
 			VoteWeight::Quadratic => {
 				match vote {
 					AccountVote::Standard { vote, balance } => {
-						AccountVote::Standard {
+						AccountVoteWeight::Standard {
 							vote,
-							balance: balance.checked_mul(&balance).unwrap_or_else(Zero::zero)
+							balance,
+							weighted_balance: balance.checked_mul(&balance).unwrap_or_else(Zero::zero)
 						}
 					},
 					AccountVote::Split { aye, nay } => {
-						AccountVote::Split {
-							aye: aye.checked_mul(&aye).unwrap_or_else(Zero::zero),
-							nay: nay.checked_mul(&nay).unwrap_or_else(Zero::zero)
+						AccountVoteWeight::Split {
+							aye,
+							nay,
+							aye_weight: aye.checked_mul(&aye).unwrap_or_else(Zero::zero),
+							nay_weight: nay.checked_mul(&nay).unwrap_or_else(Zero::zero)
+						}
+					}
+				}
+			}
+			VoteWeight::Standard => {
+				match vote {
+					AccountVote::Standard { vote, balance } => {
+						AccountVoteWeight::Standard {
+							vote,
+							balance,
+							weighted_balance: balance
+						}
+					},
+					AccountVote::Split { aye, nay } => {
+						AccountVoteWeight::Split {
+							aye,
+							nay,
+							aye_weight: aye,
+							nay_weight: nay
 						}
 					}
 				}
