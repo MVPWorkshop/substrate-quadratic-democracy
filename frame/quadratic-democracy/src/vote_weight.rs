@@ -19,8 +19,8 @@
 #[cfg(feature = "std")]
 use serde::{Serialize, Deserialize};
 use codec::{Encode, Decode};
-use sp_runtime::traits::{Zero, CheckedMul};
-use crate::{AccountVote};
+use sp_runtime::traits::{Zero, IntegerSquareRoot};
+use crate::{AccountVote, Delegations};
 use crate::vote::AccountVoteWeight;
 
 
@@ -38,10 +38,12 @@ pub enum VoteWeight {
 
 pub trait Calculate<Balance> {
 	fn calculate(&self, vote: AccountVote<Balance>) -> AccountVoteWeight<Balance>;
+	// @TODO possible rename to votes
+	fn delegation(&self, vote: Delegations<Balance>) -> Delegations<Balance>;
 }
 
 impl<
-	Balance: From<u8> + Zero + Copy + CheckedMul
+	Balance: From<u8> + Zero + Copy + IntegerSquareRoot
 > Calculate<Balance> for VoteWeight {
 	fn calculate(&self, vote: AccountVote<Balance>) -> AccountVoteWeight<Balance> {
 		match *self {
@@ -52,15 +54,15 @@ impl<
 						AccountVoteWeight::Standard {
 							vote,
 							balance,
-							weighted_balance: balance.checked_mul(&balance).unwrap_or_else(Zero::zero)
+							weighted_balance: balance.integer_sqrt(),
 						}
-					},
+					}
 					AccountVote::Split { aye, nay } => {
 						AccountVoteWeight::Split {
 							aye,
 							nay,
-							aye_weight: aye.checked_mul(&aye).unwrap_or_else(Zero::zero),
-							nay_weight: nay.checked_mul(&nay).unwrap_or_else(Zero::zero)
+							aye_weight: aye.integer_sqrt(),
+							nay_weight: nay.integer_sqrt(),
 						}
 					}
 				}
@@ -71,17 +73,36 @@ impl<
 						AccountVoteWeight::Standard {
 							vote,
 							balance,
-							weighted_balance: balance
+							weighted_balance: balance,
 						}
-					},
+					}
 					AccountVote::Split { aye, nay } => {
 						AccountVoteWeight::Split {
 							aye,
 							nay,
 							aye_weight: aye,
-							nay_weight: nay
+							nay_weight: nay,
 						}
 					}
+				}
+			}
+		}
+	}
+
+	fn delegation(&self, delegation: Delegations<Balance>) -> Delegations<Balance> {
+		let Delegations {capital, votes} = delegation;
+		match *self {
+			// VoteWeight::Standard => vote,
+			VoteWeight::Quadratic => {
+				Delegations {
+					capital,
+					votes: votes.integer_sqrt()
+				}
+			}
+			VoteWeight::Standard => {
+				Delegations {
+					capital,
+					votes
 				}
 			}
 		}

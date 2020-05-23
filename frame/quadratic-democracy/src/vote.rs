@@ -100,16 +100,34 @@ impl<Balance: Saturating> AccountVote<Balance> {
 	}
 }
 
-// impl<Balance: Saturating> AccountVoteWeight<Balance> {
-// 	/// Returns `Some` with whether the vote is an aye vote if it is standard, otherwise `None` if
-// 	/// it is split.
-// 	pub fn as_standard(self) -> Option<bool> {
-// 		match self {
-// 			AccountVoteWeight::Standard { vote, .. } => Some(vote.aye),
-// 			_ => None,
-// 		}
-// 	}
-// }
+impl<Balance: Saturating> AccountVoteWeight<Balance> {
+	/// Returns `Some` with whether the vote is an aye vote if it is standard, otherwise `None` if
+	/// it is split.
+	pub fn as_standard(self) -> Option<bool> {
+		match self {
+			AccountVoteWeight::Standard { vote, .. } => Some(vote.aye),
+			_ => None,
+		}
+	}
+	/// Returns `Some` of the lock periods that the account is locked for, assuming that the
+	/// referendum passed iff `approved` is `true`.
+	pub fn locked_if(self, approved: bool) -> Option<(u32, Balance)> {
+		// winning side: can only be removed after the lock period ends.
+		match self {
+			AccountVoteWeight::Standard { vote, balance, .. } if vote.aye == approved =>
+				Some((vote.conviction.lock_periods(), balance)),
+			_ => None,
+		}
+	}
+
+	/// The total balance involved in this vote.
+	pub fn balance(self) -> Balance {
+		match self {
+			AccountVoteWeight::Standard { balance, .. } => balance,
+			AccountVoteWeight::Split { aye, nay, .. } => aye.saturating_add(nay),
+		}
+	}
+}
 
 /// A "prior" lock, i.e. a lock for some now-forgotten reason.
 #[derive(Encode, Decode, Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, RuntimeDebug)]
@@ -141,7 +159,7 @@ pub enum Voting<Balance, AccountId, BlockNumber> {
 	/// weight that it controls from those that have delegated to it.
 	Direct {
 		/// The current votes of the account.
-		votes: Vec<(ReferendumIndex, AccountVote<Balance>)>,
+		votes: Vec<(ReferendumIndex, AccountVoteWeight<Balance>)>,
 		/// The total amount of delegations that this account has received.
 		delegations: Delegations<Balance>,
 		/// Any pre-existing locks from past voting/delegating activity.

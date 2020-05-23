@@ -189,6 +189,7 @@ pub use vote_weight::{Calculate, VoteWeight};
 pub use vote::{Vote, AccountVote, Voting};
 pub use conviction::Conviction;
 pub use types::{ReferendumInfo, ReferendumStatus, ProxyState, Tally, UnvoteScope, Delegations};
+use crate::vote::AccountVoteWeight;
 
 #[cfg(test)]
 mod tests;
@@ -1361,16 +1362,16 @@ impl<T: Trait> Module<T> {
 				match votes.binary_search_by_key(&ref_index, |i| i.0) {
 					Ok(i) => {
 						// Shouldn't be possible to fail, but we handle it gracefully.
-						status.tally.remove(votes[i].1).ok_or(Error::<T>::Underflow)?; // @TODO move to AccountVoteWeight
+						status.tally.remove(votes[i].1).ok_or(Error::<T>::Underflow)?; // @TODO move to AccountVoteWeight, need to fix .remove() to work with weighted_vote
 						if let Some(approve) = votes[i].1.as_standard() {
-							status.tally.reduce(approve, *delegations);
+							status.tally.reduce(approve, *delegations); // @TODO move to AccountVoteWeight, need to fix .reduce() to work with weighted_vote
 						}
-						votes[i].1 = vote; // @TODO move to AccountVoteWeight
+						votes[i].1 = weighted_vote;
 					}
-					Err(i) => votes.insert(i, (ref_index, vote)), // @TODO move to AccountVoteWeight
+					Err(i) => votes.insert(i, (ref_index, weighted_vote)),
 				}
 				// Shouldn't be possible to fail, but we handle it gracefully.
-				status.tally.add(vote).ok_or(Error::<T>::Overflow)?; // @TODO move to AccountVoteWeight
+				status.tally.add(weighted_vote).ok_or(Error::<T>::Overflow)?;
 				if let Some(approve) = vote.as_standard() {
 					status.tally.increase(approve, *delegations);
 				}
@@ -1438,10 +1439,11 @@ impl<T: Trait> Module<T> {
 			Voting::Direct { votes, delegations, .. } => {
 				*delegations = delegations.saturating_add(amount);
 				for &(ref_index, account_vote) in votes.iter() {
-					if let AccountVote::Standard { vote, .. } = account_vote { // @TODO move to AccountVoteWeight
+					// if target of delegation is already voted in referendum we need to increase tally
+					if let AccountVoteWeight::Standard { vote, .. } = account_vote {
 						ReferendumInfoOf::<T>::mutate(ref_index, |maybe_info|
 							if let Some(ReferendumInfo::Ongoing(ref mut status)) = maybe_info {
-								status.tally.increase(vote.aye, amount);
+								status.tally.increase(vote.aye, status.weight.delegation(amount));
 							}
 						);
 					}
@@ -1458,10 +1460,11 @@ impl<T: Trait> Module<T> {
 			Voting::Direct { votes, delegations, .. } => {
 				*delegations = delegations.saturating_sub(amount);
 				for &(ref_index, account_vote) in votes.iter() {
-					if let AccountVote::Standard { vote, .. } = account_vote { // @TODO move to AccountVoteWeight
+					// if target already voted for referendum we need to decrease tally accordingly
+					if let AccountVoteWeight::Standard { vote, .. } = account_vote {
 						ReferendumInfoOf::<T>::mutate(ref_index, |maybe_info|
 							if let Some(ReferendumInfo::Ongoing(ref mut status)) = maybe_info {
-								status.tally.reduce(vote.aye, amount);
+								status.tally.reduce(vote.aye, status.weight.delegation(amount));
 							}
 						);
 					}
@@ -1491,7 +1494,7 @@ impl<T: Trait> Module<T> {
 			match old {
 				Voting::Delegating { balance, target, conviction, delegations, prior, .. } => {
 					// remove any delegation votes to our current target.
-					Self::reduce_upstream_delegation(&target, conviction.votes(balance));
+					Self::reduce_upstream_delegation(&target, conviction.delegation_votes(balance)); // @TODO check how will quadratic will affect this
 					voting.set_common(delegations, prior);
 				}
 				Voting::Direct { votes, delegations, prior } => {
@@ -1500,7 +1503,7 @@ impl<T: Trait> Module<T> {
 					voting.set_common(delegations, prior);
 				}
 			}
-			Self::increase_upstream_delegation(&target, conviction.votes(balance));
+			Self::increase_upstream_delegation(&target, conviction.delegation_votes(balance)); // @TODO check how will quadratic will affect this
 			// Extend the lock to `balance` (rather than setting it) since we don't know what other
 			// votes are in place.
 			T::Currency::extend_lock(
@@ -1529,7 +1532,7 @@ impl<T: Trait> Module<T> {
 					mut prior,
 				} => {
 					// remove any delegation votes to our current target.
-					Self::reduce_upstream_delegation(&target, conviction.votes(balance));
+					Self::reduce_upstream_delegation(&target, conviction.delegation_votes(balance));
 					let now = system::Module::<T>::block_number();
 					let lock_periods = conviction.lock_periods().into();
 					prior.accumulate(now + T::EnactmentPeriod::get() * lock_periods, balance);

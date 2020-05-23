@@ -19,7 +19,7 @@
 use codec::{Encode, Decode};
 use sp_runtime::RuntimeDebug;
 use sp_runtime::traits::{Zero, Bounded, CheckedAdd, CheckedSub, CheckedMul, CheckedDiv, Saturating};
-use crate::{Vote, VoteThreshold, AccountVote, Conviction, VoteWeight};
+use crate::{Vote, VoteThreshold, AccountVoteWeight,Conviction, VoteWeight};
 
 /// Info regarding an ongoing referendum.
 #[derive(Encode, Decode, Default, Clone, PartialEq, Eq, RuntimeDebug)]
@@ -34,11 +34,11 @@ pub struct Tally<Balance> {
 
 /// Amount of votes and capital placed in delegation for an account.
 #[derive(Encode, Decode, Default, Copy, Clone, PartialEq, Eq, RuntimeDebug)]
-pub struct Delegations<Balance> {
-	/// The number of votes (this is post-conviction).
-	pub (crate) votes: Balance,
+pub struct 	Delegations<Balance> {
 	/// The amount of raw capital, used for the turnout.
 	pub (crate) capital: Balance,
+	/// The number of votes (this is post-conviction and post quadratic).
+	pub (crate) votes: Balance
 }
 
 impl<Balance: Saturating> Saturating for Delegations<Balance> {
@@ -79,8 +79,9 @@ impl<
 	pub fn new(
 		vote: Vote,
 		balance: Balance,
+		weighted_balance: Balance,
 	) -> Self {
-		let Delegations { votes, capital } = vote.conviction.votes(balance);
+		let Delegations { votes, capital } = vote.conviction.votes(balance, weighted_balance);
 		Self {
 			ayes: if vote.aye { votes } else { Zero::zero() },
 			nays: if vote.aye { Zero::zero() } else { votes },
@@ -91,20 +92,20 @@ impl<
 	/// Add an account's vote into the tally.
 	pub fn add(
 		&mut self,
-		vote: AccountVote<Balance>,
+		vote: AccountVoteWeight<Balance>,
 	) -> Option<()> {
 		match vote {
-			AccountVote::Standard { vote, balance } => {
-				let Delegations { votes, capital } = vote.conviction.votes(balance);
+			AccountVoteWeight::Standard { vote, balance, weighted_balance, } => {
+				let Delegations { votes, capital } = vote.conviction.votes(balance, weighted_balance);
 				self.turnout = self.turnout.checked_add(&capital)?;
 				match vote.aye {
 					true => self.ayes = self.ayes.checked_add(&votes)?,
 					false => self.nays = self.nays.checked_add(&votes)?,
 				}
 			}
-			AccountVote::Split { aye, nay } => {
-				let aye = Conviction::None.votes(aye);
-				let nay = Conviction::None.votes(nay);
+			AccountVoteWeight::Split { aye, nay, aye_weight, nay_weight } => {
+				let aye = Conviction::None.votes(aye, aye_weight);
+				let nay = Conviction::None.votes(nay, nay_weight);
 				self.turnout = self.turnout.checked_add(&aye.capital)?.checked_add(&nay.capital)?;
 				self.ayes = self.ayes.checked_add(&aye.votes)?;
 				self.nays = self.nays.checked_add(&nay.votes)?;
@@ -116,20 +117,20 @@ impl<
 	/// Remove an account's vote from the tally.
 	pub fn remove(
 		&mut self,
-		vote: AccountVote<Balance>,
+		vote: AccountVoteWeight<Balance>,
 	) -> Option<()> {
 		match vote {
-			AccountVote::Standard { vote, balance } => {
-				let Delegations { votes, capital } = vote.conviction.votes(balance);
+			AccountVoteWeight::Standard { vote, balance, weighted_balance } => {
+				let Delegations { votes, capital } = vote.conviction.votes(balance, weighted_balance);
 				self.turnout = self.turnout.checked_sub(&capital)?;
 				match vote.aye {
 					true => self.ayes = self.ayes.checked_sub(&votes)?,
 					false => self.nays = self.nays.checked_sub(&votes)?,
 				}
 			}
-			AccountVote::Split { aye, nay } => {
-				let aye = Conviction::None.votes(aye);
-				let nay = Conviction::None.votes(nay);
+			AccountVoteWeight::Split { aye, nay, aye_weight, nay_weight } => {
+				let aye = Conviction::None.votes(aye, aye_weight);
+				let nay = Conviction::None.votes(nay, aye_weight);
 				self.turnout = self.turnout.checked_sub(&aye.capital)?.checked_sub(&nay.capital)?;
 				self.ayes = self.ayes.checked_sub(&aye.votes)?;
 				self.nays = self.nays.checked_sub(&nay.votes)?;
