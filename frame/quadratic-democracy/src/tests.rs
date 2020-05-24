@@ -184,7 +184,14 @@ impl super::Trait for Test {
 pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
 	pallet_balances::GenesisConfig::<Test>{
-		balances: vec![(1, 10), (2, 20), (3, 30), (4, 40), (5, 50), (6, 60)],
+		balances: vec![
+			(1, 100),
+			(2, 200),
+			(3, 300),
+			(4, 400),
+			(5, 500),
+			(6, 600)
+		],
 	}.assimilate_storage(&mut t).unwrap();
 	GenesisConfig::default().assimilate_storage(&mut t).unwrap();
 	let mut ext = sp_io::TestExternalities::new(t);

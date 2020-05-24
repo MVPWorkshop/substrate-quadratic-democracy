@@ -203,7 +203,7 @@ impl<
 	pub fn locked_balance(&self) -> Balance {
 		match self {
 			Voting::Direct { votes, prior, .. } => votes.iter()
-				.map(|i| i.1.balance()) // @TODO move to AccountVoteWeight
+				.map(|i| i.1.balance())
 				.fold(prior.locked(), |a, i| a.max(i)),
 			Voting::Delegating { balance, .. } => *balance,
 		}

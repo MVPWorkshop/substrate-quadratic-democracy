@@ -30,12 +30,14 @@ fn overvoting_should_fail() {
 fn split_voting_should_work() {
 	new_test_ext().execute_with(|| {
 		let r = begin_referendum();
-		let v = AccountVote::Split { aye: 40, nay: 20 };
+		let v = AccountVote::Split { aye: 400, nay: 200};
 		assert_noop!(Democracy::vote(Origin::signed(5), r, v), Error::<Test>::InsufficientFunds);
-		let v = AccountVote::Split { aye: 30, nay: 20 };
+		let v = AccountVote::Split { aye: 300, nay: 200 };
 		assert_ok!(Democracy::vote(Origin::signed(5), r, v));
 
-		assert_eq!(tally(r), Tally { ayes: 3, nays: 2, turnout: 50 });
+		// sqrt(300) -> ~17 * 0.1 (Conviction) -> 1
+		// sqrt(200) -> ~14 * 0.1 (Conviction) -> 1
+		assert_eq!(tally(r), Tally { ayes: 1, nays: 1, turnout: 500 });
 	});
 }
 
