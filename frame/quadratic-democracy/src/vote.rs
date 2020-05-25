@@ -21,8 +21,6 @@ use codec::{Encode, EncodeLike, Decode, Output, Input};
 use sp_runtime::{RuntimeDebug, traits::{Saturating, Zero}};
 use crate::{Conviction, ReferendumIndex, Delegations};
 
-pub type Weight = u128;
-
 /// A number of lock periods, plus a vote, one way or the other.
 #[derive(Copy, Clone, Eq, PartialEq, Default, RuntimeDebug)]
 pub struct Vote {
@@ -171,7 +169,7 @@ pub enum Voting<Balance, AccountId, BlockNumber> {
 		target: AccountId,
 		conviction: Conviction,
 		/// The total amount of delegations that this account has received.
-		delegations: Delegations<Balance>,
+			delegations: Delegations<Balance>,
 		/// Any pre-existing locks from past voting/delegating activity.
 		prior: PriorLock<BlockNumber, Balance>,
 	},

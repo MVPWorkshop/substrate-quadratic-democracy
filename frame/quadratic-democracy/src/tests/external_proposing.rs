@@ -172,7 +172,6 @@ fn external_default_referendum_works() {
 	});
 }
 
-
 #[test]
 fn external_and_public_interleaving_works() {
 	new_test_ext().execute_with(|| {

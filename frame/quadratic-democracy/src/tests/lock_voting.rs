@@ -52,16 +52,16 @@ fn lock_voting_should_work() {
 			VoteWeight::Quadratic,
 			0
 		);
-		assert_ok!(Democracy::vote(Origin::signed(1), r, nay(5, 10)));
-		assert_ok!(Democracy::vote(Origin::signed(2), r, aye(4, 20)));
-		assert_ok!(Democracy::vote(Origin::signed(3), r, aye(3, 30)));
-		assert_ok!(Democracy::vote(Origin::signed(4), r, aye(2, 40)));
-		assert_ok!(Democracy::vote(Origin::signed(5), r, nay(1, 50)));
-		assert_eq!(tally(r), Tally { ayes: 250, nays: 100, turnout: 150 });
+		assert_ok!(Democracy::vote(Origin::signed(1), r, nay(5, 100)));
+		assert_ok!(Democracy::vote(Origin::signed(2), r, aye(4, 200)));
+		assert_ok!(Democracy::vote(Origin::signed(3), r, aye(3, 300)));
+		assert_ok!(Democracy::vote(Origin::signed(4), r, aye(2, 400)));
+		assert_ok!(Democracy::vote(Origin::signed(5), r, nay(1, 500)));
+		assert_eq!(tally(r), Tally { ayes: 147, nays: 72, turnout: 1500 });
 
 		// All balances are currently locked.
 		for i in 1..=5 {
-			assert_eq!(Balances::locks(i), vec![the_lock(i * 10)]);
+			assert_eq!(Balances::locks(i), vec![the_lock(i * 100)]);
 		}
 
 		fast_forward_to(2);
@@ -80,9 +80,9 @@ fn lock_voting_should_work() {
 		assert_ok!(Democracy::unlock(Origin::signed(2), 2));
 
 		assert_eq!(Balances::locks(1), vec![]);
-		assert_eq!(Balances::locks(2), vec![the_lock(20)]);
-		assert_eq!(Balances::locks(3), vec![the_lock(30)]);
-		assert_eq!(Balances::locks(4), vec![the_lock(40)]);
+		assert_eq!(Balances::locks(2), vec![the_lock(200)]);
+		assert_eq!(Balances::locks(3), vec![the_lock(300)]);
+		assert_eq!(Balances::locks(4), vec![the_lock(400)]);
 		assert_eq!(Balances::locks(5), vec![]);
 		assert_eq!(Balances::free_balance(42), 2);
 
@@ -91,7 +91,7 @@ fn lock_voting_should_work() {
 		// No change yet...
 		assert_noop!(Democracy::remove_other_vote(Origin::signed(1), 4, r), Error::<Test>::NoPermission);
 		assert_ok!(Democracy::unlock(Origin::signed(1), 4));
-		assert_eq!(Balances::locks(4), vec![the_lock(40)]);
+		assert_eq!(Balances::locks(4), vec![the_lock(400)]);
 		fast_forward_to(6);
 		// 4 should now be able to reap and unlock
 		assert_ok!(Democracy::remove_other_vote(Origin::signed(1), 4, r));
@@ -101,7 +101,7 @@ fn lock_voting_should_work() {
 		fast_forward_to(9);
 		assert_noop!(Democracy::remove_other_vote(Origin::signed(1), 3, r), Error::<Test>::NoPermission);
 		assert_ok!(Democracy::unlock(Origin::signed(1), 3));
-		assert_eq!(Balances::locks(3), vec![the_lock(30)]);
+		assert_eq!(Balances::locks(3), vec![the_lock(300)]);
 		fast_forward_to(10);
 		assert_ok!(Democracy::remove_other_vote(Origin::signed(1), 3, r));
 		assert_ok!(Democracy::unlock(Origin::signed(1), 3));
@@ -110,7 +110,7 @@ fn lock_voting_should_work() {
 		// 2 doesn't need to reap_vote here because it was already done before.
 		fast_forward_to(17);
 		assert_ok!(Democracy::unlock(Origin::signed(1), 2));
-		assert_eq!(Balances::locks(2), vec![the_lock(20)]);
+		assert_eq!(Balances::locks(2), vec![the_lock(200)]);
 		fast_forward_to(18);
 		assert_ok!(Democracy::unlock(Origin::signed(1), 2));
 		assert_eq!(Balances::locks(2), vec![]);
@@ -128,7 +128,7 @@ fn no_locks_without_conviction_should_work() {
 			VoteWeight::Quadratic,
 			0,
 		);
-		assert_ok!(Democracy::vote(Origin::signed(1), r, aye(0, 10)));
+		assert_ok!(Democracy::vote(Origin::signed(1), r, aye(0, 100)));
 
 		fast_forward_to(2);
 
@@ -149,13 +149,13 @@ fn lock_voting_should_work_with_delegation() {
 			VoteWeight::Quadratic,
 			0
 		);
-		assert_ok!(Democracy::vote(Origin::signed(1), r, nay(5, 10)));
-		assert_ok!(Democracy::vote(Origin::signed(2), r, aye(4, 20)));
-		assert_ok!(Democracy::vote(Origin::signed(3), r, aye(3, 30)));
-		assert_ok!(Democracy::delegate(Origin::signed(4), 2, Conviction::Locked2x, 40));
-		assert_ok!(Democracy::vote(Origin::signed(5), r, nay(1, 50)));
+		assert_ok!(Democracy::vote(Origin::signed(1), r, nay(5, 100)));
+		assert_ok!(Democracy::vote(Origin::signed(2), r, aye(4, 200)));
+		assert_ok!(Democracy::vote(Origin::signed(3), r, aye(3, 300)));
+		assert_ok!(Democracy::delegate(Origin::signed(4), 2, Conviction::Locked2x, 400));
+		assert_ok!(Democracy::vote(Origin::signed(5), r, nay(1, 500)));
 
-		assert_eq!(tally(r), Tally { ayes: 250, nays: 100, turnout: 150 });
+		assert_eq!(tally(r), Tally { ayes: 135, nays: 72, turnout: 1500 });
 
 		next_block();
 		next_block();

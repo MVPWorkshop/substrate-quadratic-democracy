@@ -76,7 +76,7 @@ fn voting_and_removing_votes_should_work_with_proxy() {
 		assert_ok!(Democracy::activate_proxy(Origin::signed(1), 10));
 
 		assert_ok!(Democracy::proxy_vote(Origin::signed(10), r, aye(1)));
-		assert_eq!(tally(r), Tally { ayes: 1, nays: 0, turnout: 10 });
+		assert_eq!(tally(r), Tally { ayes: 1, nays: 0, turnout: 100 });
 
 		assert_ok!(Democracy::proxy_remove_vote(Origin::signed(10), r));
 		assert_eq!(tally(r), Tally { ayes: 0, nays: 0, turnout: 0 });
@@ -92,13 +92,13 @@ fn delegation_and_undelegation_should_work_with_proxy() {
 		let r = 0;
 		assert_ok!(Democracy::open_proxy(Origin::signed(10), 1));
 		assert_ok!(Democracy::activate_proxy(Origin::signed(1), 10));
-		assert_ok!(Democracy::vote(Origin::signed(2), r, aye(2)));
+		assert_ok!(Democracy::vote(Origin::signed(2), r, aye(2)));// 200 => 14 * 0.1 =1
 
-		assert_ok!(Democracy::proxy_delegate(Origin::signed(10), 2, Conviction::None, 10));
-		assert_eq!(tally(r), Tally { ayes: 3, nays: 0, turnout: 30 });
+		assert_ok!(Democracy::proxy_delegate(Origin::signed(10), 2, Conviction::None, 100));
+		assert_eq!(tally(r), Tally { ayes: 4, nays: 0, turnout: 300 });
 
 		assert_ok!(Democracy::proxy_undelegate(Origin::signed(10)));
-		assert_eq!(tally(r), Tally { ayes: 2, nays: 0, turnout: 20 });
+		assert_eq!(tally(r), Tally { ayes: 1, nays: 0, turnout: 200 });
 	});
 }
 

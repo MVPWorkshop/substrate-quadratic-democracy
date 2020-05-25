@@ -63,7 +63,7 @@ fn preimage_deposit_should_be_required_and_returned() {
 		next_block();
 
 		assert_eq!(Balances::reserved_balance(6), 0);
-		assert_eq!(Balances::free_balance(6), 60);
+		assert_eq!(Balances::free_balance(6), 600);
 		assert_eq!(Balances::free_balance(42), 2);
 	});
 }
@@ -84,7 +84,7 @@ fn preimage_deposit_should_be_reapable_earlier_by_owner() {
 		next_block();
 		assert_ok!(Democracy::reap_preimage(Origin::signed(6), set_balance_proposal_hash(2)));
 
-		assert_eq!(Balances::free_balance(6), 60);
+		assert_eq!(Balances::free_balance(6), 600);
 		assert_eq!(Balances::reserved_balance(6), 0);
 	});
 }
@@ -112,8 +112,8 @@ fn preimage_deposit_should_be_reapable() {
 		next_block();
 		assert_ok!(Democracy::reap_preimage(Origin::signed(5), set_balance_proposal_hash(2)));
 		assert_eq!(Balances::reserved_balance(6), 0);
-		assert_eq!(Balances::free_balance(6), 48);
-		assert_eq!(Balances::free_balance(5), 62);
+		assert_eq!(Balances::free_balance(6), 588);
+		assert_eq!(Balances::free_balance(5), 512);
 	});
 }
 

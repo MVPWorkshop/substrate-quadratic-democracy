@@ -37,7 +37,8 @@ pub struct Tally<Balance> {
 pub struct 	Delegations<Balance> {
 	/// The amount of raw capital, used for the turnout.
 	pub (crate) capital: Balance,
-	/// The number of votes (this is post-conviction and post quadratic).
+	/// The number of votes (this is post-conviction)
+	/// votes impact depends on referendum vote weight
 	pub (crate) votes: Balance
 }
 
@@ -130,7 +131,7 @@ impl<
 			}
 			AccountVoteWeight::Split { aye, nay, aye_weight, nay_weight } => {
 				let aye = Conviction::None.votes(aye, aye_weight);
-				let nay = Conviction::None.votes(nay, aye_weight);
+				let nay = Conviction::None.votes(nay, nay_weight);
 				self.turnout = self.turnout.checked_sub(&aye.capital)?.checked_sub(&nay.capital)?;
 				self.ayes = self.ayes.checked_sub(&aye.votes)?;
 				self.nays = self.nays.checked_sub(&nay.votes)?;

@@ -45,7 +45,7 @@ fn split_voting_should_work() {
 fn split_vote_cancellation_should_work() {
 	new_test_ext().execute_with(|| {
 		let r = begin_referendum();
-		let v = AccountVote::Split { aye: 30, nay: 20 };
+		let v = AccountVote::Split { aye: 300, nay: 200 };
 		assert_ok!(Democracy::vote(Origin::signed(5), r, v));
 		assert_ok!(Democracy::remove_vote(Origin::signed(5), r));
 		assert_eq!(tally(r), Tally { ayes: 0, nays: 0, turnout: 0 });
@@ -75,7 +75,7 @@ fn single_proposal_should_work() {
 				threshold: VoteThreshold::SuperMajorityApprove,
 				weight: VoteWeight::Quadratic,
 				delay: 2,
-				tally: Tally { ayes: 1, nays: 0, turnout: 10 },
+				tally: Tally { ayes: 1, nays: 0, turnout: 100 },
 			})
 		);
 
@@ -108,14 +108,17 @@ fn controversial_voting_should_work() {
 			0
 		);
 
-		assert_ok!(Democracy::vote(Origin::signed(1), r, big_aye(1)));
-		assert_ok!(Democracy::vote(Origin::signed(2), r, big_nay(2)));
-		assert_ok!(Democracy::vote(Origin::signed(3), r, big_nay(3)));
-		assert_ok!(Democracy::vote(Origin::signed(4), r, big_aye(4)));
-		assert_ok!(Democracy::vote(Origin::signed(5), r, big_nay(5)));
-		assert_ok!(Democracy::vote(Origin::signed(6), r, big_aye(6)));
+		assert_ok!(Democracy::vote(Origin::signed(1), r, big_aye(1))); // 100 * 1 => 10
+		assert_ok!(Democracy::vote(Origin::signed(2), r, big_nay(2))); // 200 * 1 => ~14
+		assert_ok!(Democracy::vote(Origin::signed(3), r, big_nay(3))); // 300 * 1 => ~17
+		assert_ok!(Democracy::vote(Origin::signed(4), r, big_aye(4))); // 400 * 1 => ~20
+		assert_ok!(Democracy::vote(Origin::signed(5), r, big_nay(5))); // 500 * 1 => ~22
+		assert_ok!(Democracy::vote(Origin::signed(6), r, big_aye(6))); // 600 * 1 => ~24
 
-		assert_eq!(tally(r), Tally { ayes: 110, nays: 100, turnout: 210 });
+		// aye = 10 + 20 + 24 = 54
+		// nay = 14 + 17 + 22 = 53
+
+		assert_eq!(tally(r), Tally { ayes: 54, nays: 53, turnout: 2100 });
 
 		next_block();
 		next_block();
@@ -134,10 +137,10 @@ fn controversial_low_turnout_voting_should_work() {
 			VoteWeight::Quadratic,
 			0
 		);
-		assert_ok!(Democracy::vote(Origin::signed(5), r, big_nay(5)));
-		assert_ok!(Democracy::vote(Origin::signed(6), r, big_aye(6)));
+		assert_ok!(Democracy::vote(Origin::signed(5), r, big_nay(5))); // 500 * 1 => 22
+		assert_ok!(Democracy::vote(Origin::signed(6), r, big_aye(6))); // 600 * 1 => 24
 
-		assert_eq!(tally(r), Tally { ayes: 60, nays: 50, turnout: 110 });
+		assert_eq!(tally(r), Tally { ayes: 24, nays: 22, turnout: 1100 });
 
 		next_block();
 		next_block();
@@ -150,7 +153,7 @@ fn controversial_low_turnout_voting_should_work() {
 fn passing_low_turnout_voting_should_work() {
 	new_test_ext().execute_with(|| {
 		assert_eq!(Balances::free_balance(42), 0);
-		assert_eq!(Balances::total_issuance(), 210);
+		assert_eq!(Balances::total_issuance(), 2100);
 
 		let r = Democracy::inject_referendum(
 			2,
@@ -162,7 +165,7 @@ fn passing_low_turnout_voting_should_work() {
 		assert_ok!(Democracy::vote(Origin::signed(4), r, big_aye(4)));
 		assert_ok!(Democracy::vote(Origin::signed(5), r, big_nay(5)));
 		assert_ok!(Democracy::vote(Origin::signed(6), r, big_aye(6)));
-		assert_eq!(tally(r), Tally { ayes: 100, nays: 50, turnout: 150 });
+		assert_eq!(tally(r), Tally { ayes: 44, nays: 22, turnout: 1500 });
 
 		next_block();
 		next_block();

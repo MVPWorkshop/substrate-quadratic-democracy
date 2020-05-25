@@ -32,14 +32,12 @@ pub enum VoteWeight {
 	Standard,
 	/// Quadratic way of calculating vote weight
 	Quadratic,
-
-	// add more as needed
 }
 
 pub trait Calculate<Balance> {
 	fn calculate(&self, vote: AccountVote<Balance>) -> AccountVoteWeight<Balance>;
-	// @TODO possible rename to votes
 	fn delegation(&self, vote: Delegations<Balance>) -> Delegations<Balance>;
+	fn calculate_weight(&self, amount: Balance) -> Balance;
 }
 
 impl<
@@ -56,7 +54,7 @@ impl<
 							balance,
 							weighted_balance: balance.integer_sqrt(),
 						}
-					}
+					},
 					AccountVote::Split { aye, nay } => {
 						AccountVoteWeight::Split {
 							aye,
@@ -75,7 +73,7 @@ impl<
 							balance,
 							weighted_balance: balance,
 						}
-					}
+					},
 					AccountVote::Split { aye, nay } => {
 						AccountVoteWeight::Split {
 							aye,
@@ -104,6 +102,18 @@ impl<
 					capital,
 					votes
 				}
+			}
+		}
+	}
+
+	fn calculate_weight(&self, amount: Balance) -> Balance {
+		match *self {
+			// VoteWeight::Standard => vote,
+			VoteWeight::Quadratic => {
+				amount.integer_sqrt()
+			}
+			VoteWeight::Standard => {
+				amount
 			}
 		}
 	}
