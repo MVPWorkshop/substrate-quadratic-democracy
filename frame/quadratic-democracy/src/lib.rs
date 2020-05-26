@@ -1356,7 +1356,6 @@ impl<T: Trait> Module<T> {
 		ensure!(vote.balance() <= T::Currency::free_balance(who), Error::<T>::InsufficientFunds);
 
 		let weighted_vote = status.weight.calculate(vote);
-		println!("{:?}", weighted_vote);
 		VotingOf::<T>::try_mutate(who, |voting| -> DispatchResult {
 			if let Voting::Direct { ref mut votes, delegations, .. } = voting {
 				match votes.binary_search_by_key(&ref_index, |i| i.0) {
